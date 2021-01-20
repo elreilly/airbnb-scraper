@@ -141,6 +141,16 @@ ASPECTS = (
         dtype=bool,
         postprocessor=bool,
     ),
+    AirbnbAspect(
+        name="Latitude",
+        path='data.merlin.pdpSections.sections[sectionId == "LOCATION_DEFAULT"].section.lat',
+        dtype=float,
+    ),
+    AirbnbAspect(
+        name="Longitude",
+        path='data.merlin.pdpSections.sections[sectionId == "LOCATION_DEFAULT"].section.lng',
+        dtype=float,
+    ),
 )
 
 
@@ -166,6 +176,7 @@ def get_properties(room_id, check_in, check_out, api_key):
         **properties_for_sections(["POLICIES_DEFAULT"]),
         **properties_for_sections(["AMENITIES_DEFAULT"]),
         **properties_for_sections(["BOOK_IT_SIDEBAR"]),
+        **properties_for_sections(["LOCATION_DEFAULT"]),
         "link": f"https://www.airbnb.com/rooms/{room_id}?check_in={check_in}&check_out={check_out}",
     }
 
