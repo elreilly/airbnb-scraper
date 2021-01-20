@@ -5,8 +5,11 @@ import operator
 import re
 from typing import Any, Callable, Optional, Type, List
 import urllib.parse
+import geopy
 
 import requests
+
+USER_AGENT = "PostmanRuntime/7.26.8"
 
 
 def get_response_from_section(room_id, check_in, check_out, sections, api_key):
@@ -154,6 +157,25 @@ ASPECTS = (
 )
 
 
+def get_zipcode(lat, lng):
+    geolocator = geopy.ArcGIS(user_agent=USER_AGENT)
+    location = geolocator.reverse((lat, lng))
+    return location.raw["Postal"]
+
+
+def get_instacart_availability(zipcode):
+    url = f"https://www.instacart.com/v3/dynamic_data/authenticate/postal_code_check?postal_code={zipcode}&location_type=postal_code"
+    headers = {
+        "content-type": "application/json",
+        "user-agent": USER_AGENT,
+    }
+    response = requests.request("GET", url, headers=headers)
+    return get_value_from_path(
+        response,
+        "meta.triggered_action.data.container_tracking_params.zip_active",
+    )
+
+
 def get_properties(room_id, check_in, check_out, api_key):
     def properties_for_sections(sections):
         response = get_response_from_section(
@@ -177,7 +199,7 @@ def get_properties(room_id, check_in, check_out, api_key):
         **properties_for_sections(["AMENITIES_DEFAULT"]),
         **properties_for_sections(["BOOK_IT_SIDEBAR"]),
         **properties_for_sections(["LOCATION_DEFAULT"]),
-        "link": f"https://www.airbnb.com/rooms/{room_id}?check_in={check_in}&check_out={check_out}",
+        "Link": f"https://www.airbnb.com/rooms/{room_id}?check_in={check_in}&check_out={check_out}",
     }
 
 
@@ -201,6 +223,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("--api-key", required=True, help="API Key for Airbnb")
     args = parser.parse_args()
-    pprint.pprint(
-        get_properties(args.id, args.check_in, args.check_out, args.api_key)
+    properties = get_properties(
+        args.id, args.check_in, args.check_out, args.api_key
     )
+    properties["Zipcode"] = get_zipcode(
+        properties["Latitude"], properties["Longitude"]
+    )
+    properties["Instacart"] = get_instacart_availability(properties["Zipcode"])
+    pprint.pprint(properties)
