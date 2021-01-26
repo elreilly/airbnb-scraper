@@ -1,13 +1,14 @@
 #!python3
-import dataclasses
+import datetime
 import json
 import operator
 import re
-from typing import Any, Callable, Optional, Type, List
 import urllib.parse
-import geopy
 
+import dataclasses
+import geopy
 import requests
+from typing import Any, Callable, List, Optional, Type
 
 USER_AGENT = "PostmanRuntime/7.26.8"
 
@@ -109,6 +110,12 @@ ASPECTS = (
         postprocessor=lambda a: float(a.split()[0]),
     ),
     AirbnbAspect(
+        name="Unavailable",
+        path='data.merlin.pdpSections.sections[sectionId == "BOOK_IT_SIDEBAR"].section.available',
+        dtype=bool,
+        postprocessor=lambda a: not a,
+    ),
+    AirbnbAspect(
         name="Pet friendly",
         path='data.merlin.pdpSections.sections[sectionId == "POLICIES_DEFAULT"].section.houseRules[title == "Pets are allowed"]?.title',
         dtype=bool,
@@ -157,10 +164,13 @@ ASPECTS = (
 )
 
 
-def get_zipcode(lat, lng):
+def get_location(lat, lng):
     geolocator = geopy.ArcGIS(user_agent=USER_AGENT)
     location = geolocator.reverse((lat, lng))
-    return location.raw["Postal"]
+    return {
+        "Zipcode": location.raw["Postal"],
+        "City": location.raw["City"] + ", " + location.raw["Region"],
+    }
 
 
 def get_instacart_availability(zipcode):
@@ -174,6 +184,44 @@ def get_instacart_availability(zipcode):
         response,
         "meta.triggered_action.data.container_tracking_params.zip_active",
     )
+
+
+def get_weather(latitude, longitude, check_in, check_out, api_key):
+    check_in_date = datetime.date(*map(int, check_in.split("-")))
+    check_out_date = datetime.date(*map(int, check_out.split("-")))
+    avg_highs, avg_lows, means = [], [], []
+    start = check_in_date
+    while start <= check_out_date:
+        params = {
+            "geocode": f"{latitude},{longitude}",
+            "startDay": f"{check_in_date.day}",
+            "startMonth": f"{check_in_date.month}",
+            "units": "e",
+            "format": "json",
+            "apiKey": api_key,
+        }
+        url = (
+            "https://api.weather.com/v3/wx/almanac/daily/45day?"
+            + urllib.parse.urlencode(params)
+        )
+        response = requests.request("GET", url)
+        response_json = response.json()
+        assert (
+            len(response_json["almanacInterval"]) == 45
+        ), f"Weather API request failed: {response_json}"
+        avg_lows += response_json["temperatureAverageMin"]
+        avg_highs += response_json["temperatureAverageMax"]
+        means += response_json["temperatureMean"]
+        start += datetime.timedelta(days=45)
+    total_days = (check_out_date - check_in_date).days + 1
+    avg_lows = avg_lows[:total_days]
+    avg_highs = avg_highs[:total_days]
+    means = means[:total_days]
+    return {
+        "Temperature (Avg High)": round(sum(avg_highs) / len(avg_highs), 1),
+        "Temperature (Avg Low)": round(sum(avg_lows) / len(avg_lows), 1),
+        "Temperature (Mean)": round(sum(means) / len(means), 1),
+    }
 
 
 def get_properties(room_id, check_in, check_out, api_key):
@@ -221,13 +269,56 @@ if __name__ == "__main__":
         required=True,
         help="Check out date of the form YYYY-MM-DD",
     )
-    parser.add_argument("--api-key", required=True, help="API Key for Airbnb")
+    parser.add_argument(
+        "--airbnb-api-key", required=True, help="API Key for Airbnb"
+    )
+    parser.add_argument(
+        "--weather-api-key", required=True, help="API Key for weather.com"
+    )
     args = parser.parse_args()
     properties = get_properties(
-        args.id, args.check_in, args.check_out, args.api_key
+        args.id, args.check_in, args.check_out, args.airbnb_api_key
     )
-    properties["Zipcode"] = get_zipcode(
-        properties["Latitude"], properties["Longitude"]
+    properties.update(
+        get_location(properties["Latitude"], properties["Longitude"])
     )
     properties["Instacart"] = get_instacart_availability(properties["Zipcode"])
-    pprint.pprint(properties)
+    properties.update(
+        get_weather(
+            properties["Latitude"],
+            properties["Longitude"],
+            args.check_in,
+            args.check_out,
+            args.weather_api_key,
+        )
+    )
+    labels = [
+        "City",
+        "Name",
+        "Link",
+        "Contacted",
+        "Unavailable",
+        "List Price",
+        "Negotiated $$",
+        "Bedrooms",
+        "Bathrooms",
+        "Instacart",
+        "Pet friendly",
+        "Laundry",
+        "Dishwasher",
+        "WiFi speed",
+        "Superhost",
+        "Hot tub",
+        "Pool",
+        "Big living room",
+        "Outdoor working space",
+        "Temperature (Avg High)",
+        "Temperature (Avg Low)",
+        "Temperature (Mean)",
+        "Notes",
+    ]
+    values = [properties.get(label, "") for label in labels]
+    import csv
+    import sys
+
+    csv.writer(sys.stdout, delimiter="\t").writerow(values)
