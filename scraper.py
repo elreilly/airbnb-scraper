@@ -255,19 +255,8 @@ if __name__ == "__main__":
     import argparse
     import pprint
 
-    parser = argparse.ArgumentParser(description="Pull an Airbnb listing.")
-    parser.add_argument(
-        "--id", required=True, help="The numeric ID of the Airbnb listing"
-    )
-    parser.add_argument(
-        "--check-in",
-        required=True,
-        help="Check out date of the form YYYY-MM-DD",
-    )
-    parser.add_argument(
-        "--check-out",
-        required=True,
-        help="Check out date of the form YYYY-MM-DD",
+    parser = argparse.ArgumentParser(
+        description="Enter either an Airbnb URL or a room id, check-in, and check-out date to pull data about an Airbnb listing."
     )
     parser.add_argument(
         "--airbnb-api-key", required=True, help="API Key for Airbnb"
@@ -275,9 +264,36 @@ if __name__ == "__main__":
     parser.add_argument(
         "--weather-api-key", required=True, help="API Key for weather.com"
     )
+    parser.add_argument(
+        "--check-in",
+        help="Check out date of the form YYYY-MM-DD",
+    )
+    parser.add_argument(
+        "--check-out",
+        help="Check out date of the form YYYY-MM-DD",
+    )
+    id_group = parser.add_mutually_exclusive_group()
+    id_group.add_argument("--id", help="The numeric ID of the Airbnb listing")
+    id_group.add_argument(
+        "--url",
+        help="Airbnb room URL. If the URI contains the check_in and/or check_out query params, these will be used as the default values for those arguments.",
+    )
+
     args = parser.parse_args()
+    if args.id:
+        room_id = args.id
+    elif args.url:
+        pieces = urllib.parse.urlsplit(args.url)
+        room_id = pieces.path.split("/")[-1]
+        params = urllib.parse.parse_qs(pieces.query)
+        # If the check_in/out query param is present in the url and wasn't
+        # provided as an argument, set the arg value to the one in the url.
+        if params["check_in"] and not args.check_in:
+            args.check_in = params["check_in"][0]
+        if params["check_out"] and not args.check_out:
+            args.check_out = params["check_out"][0]
     properties = get_properties(
-        args.id, args.check_in, args.check_out, args.airbnb_api_key
+        room_id, args.check_in, args.check_out, args.airbnb_api_key
     )
     properties.update(
         get_location(properties["Latitude"], properties["Longitude"])
