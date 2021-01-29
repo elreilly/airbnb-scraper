@@ -251,6 +251,67 @@ def get_properties(room_id, check_in, check_out, api_key):
     }
 
 
+def get_airbnb_data(
+    airbnb_api_key,
+    weather_api_key,
+    room_id=None,
+    url=None,
+    check_in=None,
+    check_out=None,
+):
+    if url:
+        pieces = urllib.parse.urlsplit(url)
+        room_id = pieces.path.split("/")[-1]
+        params = urllib.parse.parse_qs(pieces.query)
+        # If the check_in/out query param is present in the url and wasn't
+        # provided as an argument, set the arg value to the one in the url.
+        if params["check_in"] and not check_in:
+            check_in = params["check_in"][0]
+        if params["check_out"] and not check_out:
+            check_out = params["check_out"][0]
+    properties = get_properties(room_id, check_in, check_out, airbnb_api_key)
+    properties.update(
+        get_location(properties["Latitude"], properties["Longitude"])
+    )
+    properties["Instacart"] = get_instacart_availability(properties["Zipcode"])
+    properties.update(
+        get_weather(
+            properties["Latitude"],
+            properties["Longitude"],
+            check_in,
+            check_out,
+            weather_api_key,
+        )
+    )
+    labels = [
+        "City",
+        "Name",
+        "Link",
+        "Contacted",
+        "Unavailable",
+        "List Price",
+        "Negotiated $$",
+        "Bedrooms",
+        "Bathrooms",
+        "Instacart",
+        "Pet friendly",
+        "Laundry",
+        "Dishwasher",
+        "WiFi speed",
+        "Superhost",
+        "Hot tub",
+        "Pool",
+        "Big living room",
+        "Outdoor working space",
+        "Temperature (Avg High)",
+        "Temperature (Avg Low)",
+        "Temperature (Mean)",
+        "Notes",
+    ]
+    values = [properties.get(label, "") for label in labels]
+    return values
+
+
 if __name__ == "__main__":
     import argparse
     import pprint
@@ -280,60 +341,14 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    if args.id:
-        room_id = args.id
-    elif args.url:
-        pieces = urllib.parse.urlsplit(args.url)
-        room_id = pieces.path.split("/")[-1]
-        params = urllib.parse.parse_qs(pieces.query)
-        # If the check_in/out query param is present in the url and wasn't
-        # provided as an argument, set the arg value to the one in the url.
-        if params["check_in"] and not args.check_in:
-            args.check_in = params["check_in"][0]
-        if params["check_out"] and not args.check_out:
-            args.check_out = params["check_out"][0]
-    properties = get_properties(
-        room_id, args.check_in, args.check_out, args.airbnb_api_key
+    values = get_airbnb_data(
+        args.airbnb_api_key,
+        args.weather_api_key,
+        args.id,
+        args.url,
+        args.check_in,
+        args.check_out,
     )
-    properties.update(
-        get_location(properties["Latitude"], properties["Longitude"])
-    )
-    properties["Instacart"] = get_instacart_availability(properties["Zipcode"])
-    properties.update(
-        get_weather(
-            properties["Latitude"],
-            properties["Longitude"],
-            args.check_in,
-            args.check_out,
-            args.weather_api_key,
-        )
-    )
-    labels = [
-        "City",
-        "Name",
-        "Link",
-        "Contacted",
-        "Unavailable",
-        "List Price",
-        "Negotiated $$",
-        "Bedrooms",
-        "Bathrooms",
-        "Instacart",
-        "Pet friendly",
-        "Laundry",
-        "Dishwasher",
-        "WiFi speed",
-        "Superhost",
-        "Hot tub",
-        "Pool",
-        "Big living room",
-        "Outdoor working space",
-        "Temperature (Avg High)",
-        "Temperature (Avg Low)",
-        "Temperature (Mean)",
-        "Notes",
-    ]
-    values = [properties.get(label, "") for label in labels]
     import csv
     import sys
 
