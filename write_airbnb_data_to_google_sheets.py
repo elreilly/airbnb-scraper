@@ -60,7 +60,12 @@ def update_all_rows(
             link = spreadsheet_row[link_index]
             # scrape data
             values = get_airbnb_data(airbnb_api_key, weather_api_key, url=link)
-            _put_rows(service, row_range, values)
+            spreadsheet_row += [""] * (len(values) - len(spreadsheet_row))
+            updated_row = [
+                val if val is not "" else spreadsheet_row[i]
+                for i, val in enumerate(values)
+            ]
+            _put_rows(service, row_range, updated_row)
         row += 1
 
 
