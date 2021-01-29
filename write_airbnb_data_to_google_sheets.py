@@ -8,6 +8,7 @@ import pprint
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+
 from scraper import get_airbnb_data
 
 # If modifying these scopes, delete the file token.pickle.
@@ -46,7 +47,13 @@ def get_credentials():
 
 
 def update_all_rows(
-    service, headers, spreadsheet_name, airbnb_api_key, weather_api_key
+    service,
+    headers,
+    spreadsheet_name,
+    airbnb_api_key,
+    weather_api_key,
+    check_in,
+    check_out,
 ):
     link_index = [i for i, x in enumerate(headers) if x == "Link"][0]
     spreadsheet_row = ""
@@ -59,7 +66,13 @@ def update_all_rows(
         if len(spreadsheet_row) > link_index:
             link = spreadsheet_row[link_index]
             # scrape data
-            values = get_airbnb_data(airbnb_api_key, weather_api_key, url=link)
+            values = get_airbnb_data(
+                airbnb_api_key,
+                weather_api_key,
+                url=link,
+                check_in=check_in,
+                check_out=check_out,
+            )
             spreadsheet_row += [""] * (len(values) - len(spreadsheet_row))
             updated_row = [
                 val if val is not "" else spreadsheet_row[i]
@@ -132,6 +145,8 @@ def main(args):
         args.spreadsheet_name,
         args.airbnb_api_key,
         args.weather_api_key,
+        args.check_in,
+        args.check_out,
     )
 
 
@@ -150,6 +165,14 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--weather-api-key", required=True, help="API Key for weather.com"
+    )
+    parser.add_argument(
+        "--check-in",
+        help="Check out date of the form YYYY-MM-DD",
+    )
+    parser.add_argument(
+        "--check-out",
+        help="Check out date of the form YYYY-MM-DD",
     )
 
     args = parser.parse_args()
