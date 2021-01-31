@@ -11,10 +11,8 @@ from googleapiclient.discovery import build
 
 from scraper import get_airbnb_data
 
-# If modifying these scopes, delete the file token.pickle.
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-# The ID and range of a sample spreadsheet.
 SAMPLE_SPREADSHEET_ID = "13JRO0Z8ZLVj57kYsbVHFaxyg_d8U1pUiVdHOqAyedzA"
 SAMPLE_RANGE_NAME = "April Locations!A1:T1"
 SAMPLE_RANGE_NAME2 = "April Locations!A2:T2"
@@ -77,7 +75,7 @@ def update_all_rows(
             )
             spreadsheet_row += [""] * (len(values) - len(spreadsheet_row))
             updated_row = [
-                val if val is not "" else spreadsheet_row[i]
+                val if val != "" else spreadsheet_row[i]
                 for i, val in enumerate(values)
             ]
             _put_rows(service, row_range, updated_row)
@@ -101,14 +99,12 @@ def _get_rows(service, row_range):
         .execute()
     )
     values = result.get("values", [])
-    if not values:
-        print("No data found.")
-    else:
+    if values:
         return values[0]
 
 
 def _put_rows(service, row_range, values):
-    value_input_option = "USER_ENTERED"  # TODO: Update placeholder value.
+    value_input_option = "USER_ENTERED"
 
     value_range_body = {
         "range": row_range,
@@ -129,16 +125,11 @@ def _put_rows(service, row_range, values):
     pprint.pprint(response)
 
 
-# append values to a spreadsheet
-
-
 def main(args):
     creds = get_credentials()
 
-    service = build("sheets", "v4", credentials=creds)
-
     # Call the Sheets API
-    sheet = service.spreadsheets()
+    service = build("sheets", "v4", credentials=creds)
     headers = process_headers(service, args.spreadsheet_name)
 
     update_all_rows(

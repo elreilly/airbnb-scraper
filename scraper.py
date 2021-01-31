@@ -1,11 +1,12 @@
 #!python3
+import argparse
 import dataclasses
 import datetime
 import json
 import operator
 import re
 import urllib.parse
-from typing import Any, Callable, List, Optional, Type
+from typing import Any, Callable, List, Type
 
 import geopy
 import requests
@@ -318,8 +319,6 @@ def get_airbnb_data(
 
 
 if __name__ == "__main__":
-    import argparse
-    import pprint
 
     parser = argparse.ArgumentParser(
         description="Enter either an Airbnb URL or a room id, number of guests, check-in, and check-out date to pull data about an Airbnb listing."
