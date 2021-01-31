@@ -224,7 +224,7 @@ def get_weather(latitude, longitude, check_in, check_out, api_key):
     }
 
 
-def get_properties(room_id, check_in, check_out, api_key):
+def get_properties(room_id, check_in, check_out, number_guests, api_key):
     def properties_for_sections(sections):
         response = get_response_from_section(
             room_id,
@@ -247,13 +247,14 @@ def get_properties(room_id, check_in, check_out, api_key):
         **properties_for_sections(["AMENITIES_DEFAULT"]),
         **properties_for_sections(["BOOK_IT_SIDEBAR"]),
         **properties_for_sections(["LOCATION_DEFAULT"]),
-        "Link": f"https://www.airbnb.com/rooms/{room_id}?check_in={check_in}&check_out={check_out}",
+        "Link": f"https://www.airbnb.com/rooms/{room_id}?check_in={check_in}&check_out={check_out}&guests={number_guests}&adults={number_guests}",
     }
 
 
 def get_airbnb_data(
     airbnb_api_key,
     weather_api_key,
+    number_guests=None,
     room_id=None,
     url=None,
     check_in=None,
@@ -265,11 +266,15 @@ def get_airbnb_data(
         params = urllib.parse.parse_qs(pieces.query)
         # If the check_in/out query param is present in the url and wasn't
         # provided as an argument, set the arg value to the one in the url.
-        if params["check_in"] and not check_in:
+        if "check_in" in params and not check_in:
             check_in = params["check_in"][0]
-        if params["check_out"] and not check_out:
+        if "check_out" in params and not check_out:
             check_out = params["check_out"][0]
-    properties = get_properties(room_id, check_in, check_out, airbnb_api_key)
+        if "guests" in params and not number_guests:
+            number_guests = params["gursts"][0]
+    properties = get_properties(
+        room_id, check_in, check_out, number_guests, airbnb_api_key
+    )
     properties.update(
         get_location(properties["Latitude"], properties["Longitude"])
     )
@@ -317,7 +322,7 @@ if __name__ == "__main__":
     import pprint
 
     parser = argparse.ArgumentParser(
-        description="Enter either an Airbnb URL or a room id, check-in, and check-out date to pull data about an Airbnb listing."
+        description="Enter either an Airbnb URL or a room id, number of guests, check-in, and check-out date to pull data about an Airbnb listing."
     )
     parser.add_argument(
         "--airbnb-api-key", required=True, help="API Key for Airbnb"
@@ -333,6 +338,10 @@ if __name__ == "__main__":
         "--check-out",
         help="Check out date of the form YYYY-MM-DD",
     )
+    parser.add_argument(
+        "--guests",
+        help="Number of guests.",
+    )
     id_group = parser.add_mutually_exclusive_group()
     id_group.add_argument("--id", help="The numeric ID of the Airbnb listing")
     id_group.add_argument(
@@ -344,6 +353,7 @@ if __name__ == "__main__":
     values = get_airbnb_data(
         args.airbnb_api_key,
         args.weather_api_key,
+        args.guests,
         args.id,
         args.url,
         args.check_in,

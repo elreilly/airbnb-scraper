@@ -54,6 +54,7 @@ def update_all_rows(
     weather_api_key,
     check_in,
     check_out,
+    guests,
 ):
     link_index = [i for i, x in enumerate(headers) if x == "Link"][0]
     spreadsheet_row = ""
@@ -72,6 +73,7 @@ def update_all_rows(
                 url=link,
                 check_in=check_in,
                 check_out=check_out,
+                number_guests=guests,
             )
             spreadsheet_row += [""] * (len(values) - len(spreadsheet_row))
             updated_row = [
@@ -147,6 +149,7 @@ def main(args):
         args.weather_api_key,
         args.check_in,
         args.check_out,
+        args.guests,
     )
 
 
@@ -173,6 +176,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--check-out",
         help="Check out date of the form YYYY-MM-DD",
+    )
+    parser.add_argument(
+        "--guests",
+        help="Number of guests.",
     )
 
     args = parser.parse_args()
