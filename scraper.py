@@ -1,14 +1,14 @@
 #!python3
+import dataclasses
 import datetime
 import json
 import operator
 import re
 import urllib.parse
+from typing import Any, Callable, List, Optional, Type
 
-import dataclasses
 import geopy
 import requests
-from typing import Any, Callable, List, Optional, Type
 
 USER_AGENT = "PostmanRuntime/7.26.8"
 
@@ -299,7 +299,7 @@ def get_airbnb_data(
         "Dishwasher",
         "WiFi speed",
         "Superhost",
-        "Hot tub",
+        "Hot Tub",
         "Pool",
         "Big living room",
         "Outdoor working space",
