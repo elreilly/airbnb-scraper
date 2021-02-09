@@ -14,6 +14,18 @@ import requests
 USER_AGENT = "PostmanRuntime/7.26.8"
 
 
+def get_one_guest_price(room_id, check_in, check_out, api_key):
+    response = get_response_from_section(
+        room_id, check_in, check_out, 0, ["BOOK_IT_SIDEBAR"], api_key
+    )
+    value = [
+        get_value_from_path(response, aspect.path)
+        for aspect in ASPECTS
+        if aspect.name == "List Price"
+    ]
+    return value[0]
+
+
 def get_response_from_section(
     room_id, check_in, check_out, guests, sections, api_key
 ):
@@ -283,6 +295,9 @@ def get_airbnb_data(
     properties.update(
         get_location(properties["Latitude"], properties["Longitude"])
     )
+    properties["One Guest Price"] = get_one_guest_price(
+        room_id, check_in, check_out, airbnb_api_key
+    )
     properties["Instacart"] = get_instacart_availability(properties["Zipcode"])
     properties.update(
         get_weather(
@@ -316,6 +331,7 @@ def get_airbnb_data(
         "Temperature (Avg High)",
         "Temperature (Avg Low)",
         "Temperature (Mean)",
+        "One Guest Price",
         "Notes",
     ]
     values = [properties.get(label, "") for label in labels]
