@@ -14,7 +14,9 @@ import requests
 USER_AGENT = "PostmanRuntime/7.26.8"
 
 
-def get_response_from_section(room_id, check_in, check_out, sections, api_key):
+def get_response_from_section(
+    room_id, check_in, check_out, guests, sections, api_key
+):
     req = {
         "request": {
             "id": room_id,
@@ -22,6 +24,7 @@ def get_response_from_section(room_id, check_in, check_out, sections, api_key):
             "sectionIds": sections,
             "checkIn": check_in,
             "checkOut": check_out,
+            "adults": guests,
         }
     }
 
@@ -231,6 +234,7 @@ def get_properties(room_id, check_in, check_out, number_guests, api_key):
             room_id,
             check_in,
             check_out,
+            number_guests,
             sections,
             api_key,
         )
@@ -272,7 +276,7 @@ def get_airbnb_data(
         if "check_out" in params and not check_out:
             check_out = params["check_out"][0]
         if "guests" in params and not number_guests:
-            number_guests = params["gursts"][0]
+            number_guests = params["guests"][0]
     properties = get_properties(
         room_id, check_in, check_out, number_guests, airbnb_api_key
     )
@@ -302,8 +306,8 @@ def get_airbnb_data(
         "Instacart",
         "Pet friendly",
         "Laundry",
-        "Dishwasher",
         "WiFi speed",
+        "Dishwasher",
         "Superhost",
         "Hot Tub",
         "Pool",
