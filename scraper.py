@@ -1,15 +1,16 @@
 #!python3
 import argparse
-import dataclasses
 import datetime
 import json
 import operator
 import re
+import sys
 import urllib.parse
-from typing import Any, Callable, List, Type
 
+import dataclasses
 import geopy
 import requests
+from typing import Any, Callable, List, Type
 
 USER_AGENT = "PostmanRuntime/7.26.8"
 
@@ -85,6 +86,11 @@ def get_value_from_path(response, path):
             assert len(vals) == 1
             query = vals[0]
         else:
+            if query is None:
+                print(response.json(), file=sys.stderr)
+                raise ValueError(
+                    f"Failed to fetch piece '{piece}' of path '{path}'"
+                )
             query = query[piece]
     return query
 
@@ -185,7 +191,7 @@ def get_location(lat, lng):
     location = geolocator.reverse((lat, lng))
     return {
         "Zipcode": location.raw["Postal"],
-        "City": location.raw["City"] + ", " + location.raw["Region"],
+        "City": f"{location.raw['City']}, {location.raw['Region']}",
     }
 
 
