@@ -42,8 +42,8 @@ def get_response_from_section(
     }
 
     url = (
-        "https://www.airbnb.com/api/v3/PdpPlatformSections"
-        "?operationName=PdpPlatformSections&locale=en&currency=USD"
+        "https://www.airbnb.com/api/v3/StaysPdpSections"
+        "?operationName=StaysPdpSections&locale=en&currency=USD"
         "&variables={}".format(urllib.parse.quote(json.dumps(req)))
     )
 
