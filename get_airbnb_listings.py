@@ -39,7 +39,6 @@ def get_listings_from_location(
     amenities=None,
     price_max=None,
 ):
-    print(price_max)
     req = {
         "request": {
             "metadataOnly": False,
@@ -110,15 +109,15 @@ def query_listings(args):
 def merge_listings(args):
     sheet = sheets.Sheet(covilla_sheet.SHEET_ID)
 
-    # covilla_sheet.refresh_listings(
-    #     sheet,
-    #     args.spreadsheet_name,
-    #     args.airbnb_api_key,
-    #     args.weather_api_key,
-    #     args.check_in,
-    #     args.check_out,
-    #     args.guests,
-    # )
+    covilla_sheet.refresh_listings(
+        sheet,
+        args.spreadsheet_name,
+        args.airbnb_api_key,
+        args.weather_api_key,
+        args.check_in,
+        args.check_out,
+        args.guests,
+    )
 
     new_listings = query_listings(args)
 
@@ -206,5 +205,3 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     merge_listings(args)
-
-    # pprint.pprint(max_listings)

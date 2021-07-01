@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 import argparse
+import itertools
 import os.path
 import pickle
 import pprint
@@ -70,16 +71,22 @@ def add_listings(
     )
     empty_rows = []
     consecutive_empty = 0
-    for i, row in enumerate(view, start=2):
-        if len(row) <= link_index or not row[link_index]:
-            empty_rows.append(i)
-            consecutive_empty += 1
-            if len(empty_rows) > len(room_ids) and consecutive_empty >= 10:
-                break
-        else:
-            consecutive_empty = 0
-            room_id = _room_id_from_link(row[link_index])
-            room_ids -= set([room_id])
+    try:
+        for i, row in enumerate(view, start=2):
+            if len(row) <= link_index or not row[link_index]:
+                empty_rows.append(i)
+                consecutive_empty += 1
+                if len(empty_rows) > len(room_ids) and consecutive_empty >= 10:
+                    break
+            else:
+                consecutive_empty = 0
+                room_id = _room_id_from_link(row[link_index])
+                room_ids -= set([room_id])
+        empty_rows = itertools.chain(
+            empty_rows, range(i, len(room_ids) - len(empty_rows))
+        )
+    except StopIteration:
+        empty_rows = range(2, len(room_ids) + 2)
     for room, next_empty in zip(room_ids, empty_rows):
         values = scraper.get_airbnb_data(
             airbnb_api_key,

@@ -3,6 +3,7 @@ import argparse
 import datetime
 import json
 import operator
+import pprint
 import re
 import sys
 import urllib.parse
@@ -83,7 +84,9 @@ def get_value_from_path(response, path):
             vals = [e for e in query[arr] if op_func(e[key], value)]
             if optional and not vals:
                 return None
-            assert len(vals) == 1
+            if len(vals) != 1:
+                pprint.pprint(query)
+            assert len(vals) == 1, f"{path} failed at {piece}\ncurrent {query}"
             query = vals[0]
         else:
             if query is None:
@@ -256,6 +259,29 @@ def get_properties(room_id, check_in, check_out, number_guests, api_key):
             sections,
             api_key,
         )
+        if (
+            response.json()["data"]["merlin"]["pdpSections"]["metadata"][
+                "clientLoggingContext"
+            ]["pdpType"]
+            == "PLUS"
+        ) and sections == ["AMENITIES_DEFAULT"]:
+            print("inside amenities plus")
+            pprint.pprint(response.json()["data"]["merlin"]["pdpSections"])
+            properties = {}
+            for aspect in ASPECTS:
+                if aspect.request_contains("AMENITIES_DEFAULT"):
+                    print("ASPECT: {}".format(aspect))
+                    properties[aspect.name] = aspect.postprocessor(
+                        get_value_from_path(
+                            response,
+                            aspect.path.replace(
+                                "AMENITIES_DEFAULT", "AMENITIES_PLUS"
+                            ),
+                        )
+                    )
+
+            print("INSIDE AMENITIES PLUS: {}".format(properties))
+            return properties
         return {
             aspect.name: aspect.postprocessor(
                 get_value_from_path(response, aspect.path)
@@ -318,6 +344,7 @@ def get_airbnb_data(
         "City",
         "Name",
         "Link",
+        "Notes",
         "Contacted",
         "Unavailable",
         "List Price",
@@ -338,7 +365,6 @@ def get_airbnb_data(
         "Temperature (Avg Low)",
         "Temperature (Mean)",
         "One Guest Price",
-        "Notes",
     ]
     values = [properties.get(label, "") for label in labels]
     return values
